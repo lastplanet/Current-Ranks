@@ -1,0 +1,455 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="matchpredictor.css">
+<title>Predict Outcome of Match-ups</title>
+<script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+<script type="text/javascript" src="statsfunctions.js"></script>
+<script type="text/javascript" src="boysdata.js"></script>
+<script type="text/javascript" src="girlsdata01.js"></script>
+<script type="text/javascript" src="girlsdata.js"></script>
+
+<script type="text/javascript" language="JavaScript">
+//function to get the data from fulldata which is in the boysdata.js or girlsdata.js
+function getTeamData(gender, genderage, region, sortby){
+if(gender=='boys'){ var fulldata = boysdata; }
+if(gender=='girls01'){ var fulldata = girlsdata01; }
+if(gender=='girls'){ var fulldata = girlsdata; }
+
+var n = fulldata[0].length;
+var teamname = [];
+var attack = [];
+var defense = [];
+var regions = [];
+var ages = [];
+var total = [];
+
+for (var i = 0; i < n; i++) {
+  var testval = true;
+  if(region=="all" && genderage != "all") testval = fulldata[3][i] == genderage;
+	if(genderage=="all" && region!="all") testval = fulldata[4][i] == region;
+  if(genderage!="all" && region!="all") testval = (fulldata[3][i] == genderage && fulldata[4][i]==region);
+  if (testval) {
+    teamname.push(fulldata[0][i]);
+		attack.push(fulldata[1][i]);
+		defense.push(fulldata[2][i]);
+		ages.push(fulldata[3][i]);
+		regions.push(fulldata[4][i]);
+		if(sortby=="rank"){ total.push(-1*Math.log(attack[attack.length-1])-Math.log(defense[defense.length-1])); //to have bigger number first since sort has smaller first
+		}
+  }
+}
+
+if(sortby=="rank"){
+teamname.sortby(total);
+attack.sortby(total);
+defense.sortby(total);
+ages.sortby(total);
+regions.sortby(total);
+for (var i = 0; i<teamname.length; i++) { teamname[i]=teamname[i]+" #"+(i+1);} 
+}
+return [teamname, attack, defense, ages, regions];
+}
+
+Array.prototype.sortby=function(arr){
+//sort by arr; the myArray is sorted; no assignment needed
+var len = arr.length;
+var indices = new Array(len);
+for (var i = 0; i < len; ++i) indices[i] = i;
+indices.sort(function (a, b) { return arr[a] < arr[b] ? -1 : arr[a] > arr[b] ? 1 : 0; });
+//indices are now the sorted indices
+//now sort myArray (from myArray.sortby() call)
+var tmp=[].concat(this);
+for (var i = 0; i<len; i++){ this[i] = tmp[indices[i]]; };
+}
+
+//because B00, B99, B96.. don't sort right
+function sortGenderAge(arr)
+{
+for(var i=0; i < arr.length; i++){
+if(arr[i].length==3){
+if(arr[i].substring(1,2)==0){
+arr[i]=arr[i].substring(0,1)+20+arr[i].substring(1,3);
+}else{
+arr[i]=arr[i].substring(0,1)+19+arr[i].substring(1,3);
+}
+}
+}
+arr.sort();
+arr.reverse();
+
+for(var i=0; i < arr.length; i++){
+if(arr[i].substring(0,1)=="B" || arr[i].substring(0,1)=="G")
+arr[i]=arr[i].substring(0,1)+arr[i].substring(3,5);
+}
+return arr
+}
+
+function getMenuInfo(homeaway){
+var e = document.getElementById("theGender");
+if(e && e !== "null" && e !== "undefined"){ var Gender = e.options[e.selectedIndex].value; }else{ var Gender = "boys"; }
+if(homeaway=="home"){
+var e = document.getElementById("homeGenderAge");
+if(e && e !== "null" && e !== "undefined"){ var GenderAge = e.options[e.selectedIndex].value; }else{ GenderAge = "all"; }
+var e = document.getElementById("homeRegion");
+if(e && e !== "null" && e !== "undefined"){ var Region = e.options[e.selectedIndex].value; }else{ var Region = "all" }
+var e = document.getElementById("homeSortBy");
+if(e && e !== "null" && e !== "undefined"){ var SortBy = e.options[e.selectedIndex].value; }else{ var SortBy = "name" }
+}else{
+var e = document.getElementById("awayGenderAge");
+if(e && e !== "null" && e !== "undefined"){ var GenderAge = e.options[e.selectedIndex].value; }else{ var GenderAge = "all"; }
+var e = document.getElementById("awayRegion");
+if(e && e !== "null" && e !== "undefined"){ var Region = e.options[e.selectedIndex].value; }else{ var Region = "all" }
+var e = document.getElementById("awaySortBy");
+if(e && e !== "null" && e !== "undefined"){ var SortBy = e.options[e.selectedIndex].value; }else{ var SortBy = "name" }
+}
+return [Gender, GenderAge, Region, SortBy];
+}
+
+function resetMenus(value){
+var e = document.getElementById("homeGenderAge");
+if(e && e !== "null" && e !== "undefined"){ e.selectedIndex=0; }
+var e = document.getElementById("homeRegion");
+if(e && e !== "null" && e !== "undefined"){ e.selectedIndex=0; }
+var e = document.getElementById("homeSortBy");
+if(e && e !== "null" && e !== "undefined"){ e.selectedIndex=0; }
+
+var e = document.getElementById("awayGenderAge");
+if(e && e !== "null" && e !== "undefined"){ e.selectedIndex=0; }
+var e = document.getElementById("awayRegion");
+if(e && e !== "null" && e !== "undefined"){ e.selectedIndex=0; }
+var e = document.getElementById("awaySortBy");
+if(e && e !== "null" && e !== "undefined"){ e.selectedIndex=0; }
+
+var x=document.getElementById("hometeamheader");
+x.innerHTML="Home Team ("+value+")";
+var x=document.getElementById("awayteamheader");
+x.innerHTML="Away Team ("+value+")";
+
+//reset the radios
+makeTeamRadios("home");
+makeTeamRadios("away");
+makeRegionMenu("home")
+makeRegionMenu("away")
+makeAgeMenu("home")
+makeAgeMenu("away")
+}			
+    function makeGamePrediction() {
+       selectedTeam=document.hometeam.selectedItem;
+			 var hometeamval = selectedTeam.value;
+ 			 var nohometeamselected=true;
+ 			 if(typeof(hometeamval)!=='undefined') nohometeamselected=false;
+       // This if statement is needed if more than one item is displayed.
+			for (i = 0; i<selectedTeam.length; i++) {
+         if (selectedTeam[i].checked) {
+           hometeamval = selectedTeam[i].value;
+					 nohometeamselected=false;
+         }
+      }
+			selectedTeam=document.awayteam.selectedItem;
+			 var awayteamval = selectedTeam.value;
+ 			 var noawayteamselected=true;
+ 			 if(typeof(awayteamval)!=='undefined') noawayteamselected=false;
+     // This if statement is needed if more than one item is displayed.
+			for (i = 0; i<selectedTeam.length; i++) {
+         if (selectedTeam[i].checked) {
+           awayteamval = selectedTeam[i].value;
+					 noawayteamselected=false;
+         }
+      }
+      if (nohometeamselected || noawayteamselected) {
+               alert("Select both home and away teams");
+      } else {
+			// since they will be strings
+			awayteamval = parseInt(awayteamval);
+			hometeamval = parseInt(hometeamval);
+//set up the home data
+menuInfo=getMenuInfo("home")	
+var teamdata = getTeamData(menuInfo[0], menuInfo[1], menuInfo[2], menuInfo[3])
+var homenames = teamdata[0];
+var homeattack = teamdata[1];
+var homedefense = teamdata[2];
+
+//set up the away data	
+menuInfo=getMenuInfo("away")	
+var teamdata = getTeamData(menuInfo[0], menuInfo[1], menuInfo[2], menuInfo[3])
+var awaynames = teamdata[0];
+var awayattack = teamdata[1];
+var awaydefense = teamdata[2];
+
+homeLambda=homeattack[hometeamval]/awaydefense[awayteamval]
+							awayLambda=awayattack[awayteamval]/homedefense[hometeamval]
+							homewin=1-ncchisqdf(2*awayLambda,0,2*homeLambda)
+							homewin=Math.round(100*homewin)
+							awaywin=Math.round(100*ncchisqdf(2*awayLambda,2,2*homeLambda))
+							tiegame = 100-homewin-awaywin
+							document.getElementById("predictResult").innerHTML="<font style='color:blue'>home team</font>: "+homenames[hometeamval]
+							  +"<br><font style='color:red'>away team</font>: "+awaynames[awayteamval]
+							  +"<br><br>prob <font style='color:blue'>home</font> win: "+homewin+" (expected # of goals: "+Math.round(homeLambda*100)/100+")"
+							  +"<br>prob <font style='color:red'>away</font> win: "+awaywin+" (expected # of goals: "+Math.round(awayLambda*100)/100+")"
+							  +"<br>prob tie: "+tiegame;
+//								+"<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;attack="+awayattack[awayteamval]+"&nbsp;&nbsp;defense="+awaydefense[awayteamval]
+//								+"<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;attack="+homeattack[hometeamval]+"&nbsp;&nbsp;defense="+homedefense[hometeamval]
+//					var maxGoals = Math.round(Math.max(homeLambda*4, awayLambda*4));
+// add some explanatory text
+document.getElementById("explainResult").innerHTML="x-axis is # of goals, y-axis is probability. <br />So if y=0.2 (for away team) when x=2, that means that the model predicts that 'on average' 20% of games would have 2 goals scored by away team.  Model results are based on the current rankings."
+
+var maxGoals = 20;
+var goalData = new Array(maxGoals);
+  goalData[0]=['null','home goals', 'away goals'];
+  for (var i = 0; i <= maxGoals; i++) {
+	  var homeG = PoissonPDF(homeLambda,i)
+	  var awayG = PoissonPDF(awayLambda,i)
+    goalData[i+1] = ["  "+i+"   ", homeG, awayG];
+  }
+	homeG = 1-PoissonCDF(homeLambda,maxGoals)
+	awayG = 1-PoissonCDF(awayLambda,maxGoals)
+   goalData[maxGoals+2] = ["  "+maxGoals+"+  ", homeG, awayG];
+drawChart(goalData);
+			}
+   }
+	 
+// Stuff need to make histograms
+
+      google.load("visualization", "1", {packages:["corechart"]});
+      //google.setOnLoadCallback(drawChart);
+		 
+			
+      function drawChart(d) {
+        var data = google.visualization.arrayToDataTable(d);
+
+        var options = {
+          title: 'Probabilities of #s of Home and Away Goals',
+		  legend: {position: "bottom"},
+		   colors:['black','orange'],
+		   bar: {groupWidth: "95%"}
+        };
+
+        var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+			
+// Stuff needed to make the team radios
+
+//This creates the selector for the age.  It looks in the js file and gets all the ages in that.
+//ageMenuID is where this menu should be placed
+//radioElementID is where the radio list should be placed
+//selectID is the id of the select tag
+function makeAgeMenu(homeaway){
+var ageMenuID = homeaway+"agemenu";
+var selectID = homeaway+"GenderAge"
+var menuInfo=getMenuInfo(homeaway)	
+
+var teamdata = getTeamData(menuInfo[0], "all", menuInfo[2], menuInfo[3])
+var arr = teamdata[3];
+arr = $.grep(arr, function(v, k){ return $.inArray(v ,arr) === k; });
+arr=sortGenderAge(arr);
+
+if(arr.length==0){
+var menuHTML = " <label for='"+selectID+"'>age:<br /></label><select id='"+selectID+"'><option value=\"none\">none</option></select>";
+}else{
+arr.unshift("all");
+var menuHTML = " <label for='"+selectID+"'>age:<br /></label><select onchange=\"makeRegionMenu('"+homeaway+"')\" id='"+selectID+"'>";
+for(var i=0; i<arr.length; i++){
+		menuHTML = menuHTML + "<option value='"+arr[i]+"'";
+		if(menuInfo[1]==arr[i]) menuHTML = menuHTML + "selected";
+		menuHTML = menuHTML + ">"+arr[i]+"</option>";
+}
+menuHTML = menuHTML + "</select>";
+}
+//if the menu object has been created (page exists) then update the menu
+//otherwise code hasn't created that section yet
+var object = document.getElementById(ageMenuID)
+if(object && object !== "null" && object !== "undefined")
+document.getElementById(ageMenuID).innerHTML=menuHTML;
+
+//update the other menus and radios on change
+makeTeamRadios(homeaway)
+}
+
+//This creates the selector for the region.  It looks in the js file and gets all the regions in that.
+//regionMenuID is where this menu should be placed
+//radioElementID is where the radio list should be placed
+//selectID is the id of the select tag
+function makeRegionMenu(homeaway){
+var selectID = homeaway+"Region";
+var regionMenuID = homeaway+"regionmenu";
+var menuInfo=getMenuInfo(homeaway)	
+
+var teamdata = getTeamData(menuInfo[0], menuInfo[1], "all", menuInfo[3])
+var arr = teamdata[4]; //region
+arr = $.grep(arr, function(v, k){ return $.inArray(v ,arr) === k; });
+if(arr.length>1) arr.sort(); //sort alphabetically
+
+if(arr.length==0){
+var menuHTML = " <label for='"+selectID+"'>region:<br /></label><select id='"+selectID+"' autocomplete='off'><option value=\"none\">none</option></select>";
+}else{
+arr.unshift("all");
+var menuHTML = " <label for='"+selectID+"'>region:<br /></label><select onchange=\"makeAgeMenu('"+homeaway+"')\" id='"+selectID+"' autocomplete='off'>";
+for(var i=0; i<arr.length; i++){
+		menuHTML = menuHTML + "<option value='"+arr[i]+"'";
+		if(menuInfo[2]==arr[i]) menuHTML = menuHTML + "selected";
+		menuHTML = menuHTML + ">"+arr[i]+"</option>";
+}
+menuHTML = menuHTML + "</select>";
+}
+
+var object = document.getElementById(regionMenuID)
+if(object && object !== "null" && object !== "undefined")
+document.getElementById(regionMenuID).innerHTML=menuHTML;
+makeTeamRadios(homeaway)
+}
+
+//this creates the radio buttons with team names
+function makeTeamRadios(homeaway) {
+var radioElementID = homeaway+"teamradios";
+var menuInfo=getMenuInfo(homeaway)	
+var teamdata = getTeamData(menuInfo[0], menuInfo[1], menuInfo[2], menuInfo[3])
+var teamnames = teamdata[0];
+var radioHTML = "<table>";
+for(i = 0; i<teamnames.length; i++){
+radioHTML = radioHTML + "<tr><td><input type=\"radio\" name=\"selectedItem\" value=";
+radioHTML = radioHTML + i;
+radioHTML = radioHTML + "/></td><td>"+teamnames[i]+"</td></tr>";
+}
+radioHTML = radioHTML + "</table>"
+var object = document.getElementById(radioElementID)
+if(object && object !== "null" && object !== "undefined")
+  document.getElementById(radioElementID).innerHTML=radioHTML;
+}
+</script>
+		
+</head>
+
+<body>
+<h1>LastPlanet Soccer Match Predictor<label for='theGender'>:&nbsp;&nbsp;</label>
+<select onchange="resetMenus(this.value)" id="theGender" autocomplete="off" style="background-color:#3b5998; color:white; font-size:12pt; font-weight: bold;">
+            <option value="boys" selected>&nbsp;&nbsp;BOYS&nbsp;&nbsp;</option>
+            <option value="girls01">&nbsp;&nbsp;WC GIRLS 01&nbsp;&nbsp;</option>
+            <option value="girls">&nbsp;&nbsp;PNW GIRLS&nbsp;&nbsp;</option>
+    </select></h1>
+Javascript widget, so allow the javascript to run to see stuff (IE users).			
+<table id="outertable">
+<thead>
+<tr>
+<th id="hometeamheader">Home Team (boys)</th>
+<th id="awayteamheader">Away Team (boys)</th>
+<th>Output</th>
+</tr>
+<!-- MENU ROW -->
+<tr class="with-bottom-border">
+  <!-- Home Menus -->
+<td>
+<table>
+<tr>
+<td>
+<div id="homeagemenu">
+<script>
+//creates select element with id=homeGenderAge
+//gender, menu name, target of div to change on load, id of the select tag for GenderAge
+makeAgeMenu('home')
+</script>
+</div>
+</td>
+<td>
+<div id="homeregionmenu">
+<script>makeRegionMenu('home')</script>
+</div>
+</td>
+<td>
+<div id="homesortbymenu">
+     <label for='homeSortBy'>sort by:<br /></label><select onchange="makeTeamRadios('home')" id="homeSortBy" autocomplete="off">
+            <option value="name" selected>name</option>
+            <option value="rank">rank</option>
+    </select>
+</div>
+</td>
+</tr>
+</table>
+</td>
+
+  <!-- Away Menus -->
+<td  class="with-left-border">
+<table>
+<tr >
+<td>
+<div id="awayagemenu" style="vertical-align:middle">
+<script>makeAgeMenu('away')</script>
+</div>
+</td>
+<td>
+<div id="awayregionmenu">
+<script>makeRegionMenu('away')</script>
+</div>
+</td>
+<td>
+<div id="awaysortbymenu">
+     <label for='awaySortBy'>sort by:<br /></label><select onchange="makeTeamRadios('away')" id="awaySortBy" autocomplete="off">
+            <option value="name" selected>name</option>
+            <option value="rank">rank</option>
+    </select>
+</div>
+</td>
+</tr>
+</table>
+</td>
+
+  <!-- Run Button -->
+<td align=center class="with-left-border">
+<input type="button" onfocus="this.blur()" value="run prediction" onclick="javascript:makeGamePrediction();return false;" />
+</td>
+</tr>
+</thead>
+
+<tbody>
+<!-- RADIO AND RESULT ROW -->
+<tr class="with-top-border">
+
+  <!-- Home radios -->
+<td valign="top" style="width=300px; height=500px">
+<form name="hometeam">
+<div id="hometeamradios"  style="height:500px; overflow:auto" >
+<script>
+//makeTeamRadios("boys", "B00", 'hometeamradios')
+makeTeamRadios("home")
+</script>
+</div>
+</form>
+
+
+</td>
+
+  <!-- Away radios -->
+<td valign="top" style="width=300px; height=500px"  class="with-left-border">
+<form name="awayteam">
+<div id="awayteamradios" style="height:500px; overflow:auto" >
+<script>
+makeTeamRadios("away")
+</script>
+</div>
+</form>
+</td>
+
+  <!-- Results box -->
+<td valign="top" style="padding: 10px; width=500px; height=500px;" class="with-left-border">
+<p id="predictResult">
+Change gender with menu by the header (look up)<br><br>
+Choose home and away teams then<br>
+click run prediction button above.<br>
+
+Use the menus above the team names<br>
+to choose different age or gender.<br>
+</p>
+<div id="chart_div" style="width: 400px; height: 250px; padding:0px;"></div>
+<p id="explainResult">
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div title="navigate to the page in safari. click the icon with arrow at bottom.  select add to home page.  give title. hit +"></br>* roll over this text for how to put on your iphone</br></div>
+</body>
+</html>
