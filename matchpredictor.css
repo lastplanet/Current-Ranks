@@ -1,0 +1,38 @@
+body {
+  font-family:Trebuchet MS, arial, helvetica, sans-serif;
+  font-size: 14px;
+}
+#outertable {
+   border-width: 1px;
+   border-color: Black;
+   border-style: Solid;
+}
+#outertable td {
+  font-size:0.8em;
+  padding:1px 1px 1px 1px;
+  border: 0px;
+  text-align:left;
+} 
+#outertable th {
+  font-size:0.9em;
+  text-align:left;
+  padding-top:5px;
+  padding-bottom:4px;
+  background-color: #3b5998;
+  color:#ffffff;
+  border:1px solid #272d70;
+  padding:3px 5px 2px 5px; }
+#outertable tr {
+  vertical-align:top;
+  padding-bottom:1px; 
+}
+#outertable td.with-left-border {
+ border-left:1px solid #3b5998;
+}
+#outertable tr.with-bottom-border {
+ border-bottom:1px solid #3b5998;
+}
+#outertable tr.with-top-border {
+ border-top:1px solid #3b5998;
+}
+
